@@ -1,0 +1,91 @@
+---
+- name: Install dumb init
+  get_url:
+    dest: /usr/bin/dumb-init
+    url: https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64
+    mode: 0775
+    validate_certs: no
+
+- name: Install epel
+  yum: 
+    name: epel-release
+    state: present 
+    disable_gpg_check: yes
+
+- name: Install python deps
+  yum:
+    name: "{{ item }}"
+    state: latest
+    update_cache: yes
+    disable_gpg_check: yes
+  with_items: "{{ DJANGO_RPM_DEPS }}"
+
+- name: Make Django user
+  user:
+    name: "{{ DJANGO_USER }}"
+    uid: 1000
+    group: root
+    state: present
+    createhome: yes
+    home: "{{ DJANGO_ROOT }}"
+
+- name: Change /django permissions
+  file:
+    path: "{{ DJANGO_ROOT }}"
+    state: directory
+    owner: "{{ DJANGO_USER }}" 
+    group: root
+    mode: 0775 
+
+- name: Make virtualenv dir
+  file:
+    name: "{{ DJANGO_VENV }}"
+    state: directory
+    owner: "{{ DJANGO_USER }}"
+    group: root
+    mode: 0775
+
+- name: Setup virtualenv
+  command: virtualenv .
+  args:
+    chdir: "{{ DJANGO_VENV }}"
+    creates: "{{ DJANGO_VENV }}/bin/python"
+  remote_user: "{{ DJANGO_USER }}"
+
+- name: Copy source
+  synchronize:
+    src: "/src/"
+    dest: "{{ DJANGO_ROOT }}"
+  remote_user: "{{ DJANGO_USER }}"
+
+- name: Install requirements
+  pip:
+    executable: "{{ DJANGO_VENV }}/bin/pip"
+    requirements: "{{ DJANGO_ROOT }}/requirements.txt"
+  remote_user: "{{ DJANGO_USER }}"
+
+- name: Make staticfiles dir
+  file:
+    name: "{{ DJANGO_STATIC_ROOT }}"
+    state: directory
+    owner: "{{ DJANGO_USER }}"
+    group: root
+    mode: 0775
+
+- name: Collect staticfiles
+  command: "{{ DJANGO_VENV }}/bin/python manage.py collectstatic --noinput"
+  args:
+    chdir: "{{ DJANGO_ROOT }}"
+  remote_user: "{{ DJANGO_USER }}"
+
+- name: Copy entrypoint
+  copy:
+    src: "{{ role_path }}/files/{{ item }}" 
+    dest: "/usr/bin/{{ item }}"
+    owner: root
+    group: root
+    mode: 0775
+  with_items:
+    - entrypoint.sh
+    - wait_on_postgres.py
+    - manage_django.sh

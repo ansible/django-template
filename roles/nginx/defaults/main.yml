@@ -1,0 +1,7 @@
+---
+STATIC_ROOT: /static
+PIDFILE_DIR: /run/nginx
+ASSET_PATHS: []
+PROXY: yes
+PROXY_PASS: http://django:8080
+PROXY_LOCATION: "/"

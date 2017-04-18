@@ -1,0 +1,5 @@
+from: centos:7
+ports:
+- 8000:8000
+user: 'nginx'
+command: ['/usr/bin/dumb-init', 'nginx', '-c', '/etc/nginx/nginx.conf']

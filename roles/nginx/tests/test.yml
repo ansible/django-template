@@ -1,0 +1,29 @@
+---
+- hosts: localhost
+  gather_facts: no
+  connection: local
+  vars:
+    docker_host: 0.0.0.0 
+  tasks:
+
+  - name: Wait for nginx to be ready
+    wait_for:
+      host: "{{ docker_host }}" 
+      port: 8000
+      delay: 5
+      timeout: 20
+
+  - name: Query the home page
+    uri:
+      url: "http://{{ docker_host }}:8000" 
+      return_content: yes
+    register: output
+
+  - name: Show output
+    debug:
+      var: output
+
+  - name: Should see server name 
+    assert:
+      that: "'nginx' in output.content"
+

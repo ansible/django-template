@@ -1,0 +1,24 @@
+- name: Build the project  
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+
+  - name: Remove the ansible directory
+    file:
+      path: "{{ item }}" 
+      state: absent
+    with_items:
+    - ./ansible
+    - build.out
+
+  - name: Init the ansible directory 
+    command: ansible-container init
+    
+  - name: Install this role with latest commit   
+    shell: "ansible-container install git+https://github.com/chouseknecht/nginx-container-1.git,$(git rev-parse HEAD)"
+      
+  - name: Build the project
+    shell: ansible-container --debug build 2>&1 | tee -a build.out
+    ignore_errors: yes
+

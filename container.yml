@@ -1,0 +1,62 @@
+version: "2"
+settings:
+  conductor_base: centos:7
+defaults:
+  POSTGRES_USER: django
+  POSTGRES_PASSWORD: sesame
+  POSTGRES_DB: django
+  DJANGO_PORT: 8080
+services:
+  django:
+    from: centos:7
+    roles:
+      - django-gunicorn
+    environment:
+      DATABASE_URL: "pgsql://{{ POSTGRES_USER }}:{{ POSTGRES_PASSWORD }}@postgres:5432/{{ POSTGRES_DB }}"
+      DJANGO_ROOT: '{{ DJANGO_ROOT }}'
+      DJANGO_VENV: '{{ DJANGO_VENV }}'
+    links:
+    - postgres
+    - postgres:postgresql
+    ports:
+    - '{{ DJANGO_PORT }}'
+    working_dir: '{{ DJANGO_ROOT }}'
+    user: '{{ DJANGO_USER }}'
+    command: ['{{ DJANGO_VENV }}/bin/gunicorn', '-w', '2', '-b', '0.0.0.0:{{ DJANGO_PORT }}', 'project.wsgi:application']
+    entrypoint: ['/usr/bin/dumb-init', '/usr/bin/entrypoint.sh']
+    volumes:
+      - "static:/static"
+    dev_overrides:
+      command: ['{{ DJANGO_VENV }}/bin/python', 'manage.py', 'runserver', '0.0.0.0:{{ DJANGO_PORT }}']
+      volumes:
+      - '/Users/jginsberg/Development/ansible/ansible-container-template/django-template:{{ DJANGO_ROOT }}'
+      - "static:/static"
+      expose: "{{ DJANGO_PORT }}"
+      environment:
+        DEBUG: "1"
+  nginx:
+    from: centos:7
+    roles:
+      - nginx
+    ports:
+    - '{{ DJANGO_PORT }}:8000'
+    user: nginx
+    links:
+    - django
+    command: ['/usr/bin/dumb-init', 'nginx', '-c', '/etc/nginx/nginx.conf']
+    volumes:
+      - "static:/static"
+    dev_overrides:
+      ports: []
+      command: /bin/false
+      volumes: []
+  postgres:
+    from: postgres:9.6
+    environment:
+      POSTGRES_USER: "{{ POSTGRES_USER }}"
+      POSTGRES_PASSWORD: "{{ POSTGRES_PASSWORD }}"
+      POSTGRES_DB: "{{ POSTGRES_DB }}"
+volumes:
+  static:
+    docker: {}
+registries: {}

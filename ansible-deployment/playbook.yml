@@ -1,0 +1,118 @@
+  - gather_facts: false
+    tasks:
+      - docker_service:
+            definition:
+                services: &id001
+                    nginx:
+                        links:
+                          - django
+                        image: django-template-nginx:20170418033605
+                        command:
+                          - /usr/bin/dumb-init
+                          - nginx
+                          - -c
+                          - /etc/nginx/nginx.conf
+                        user: nginx
+                        volumes:
+                          - static:/static
+                        ports:
+                          - 8080:8000
+                    postgres:
+                        environment:
+                            POSTGRES_PASSWORD: sesame
+                            POSTGRES_USER: django
+                            POSTGRES_DB: django
+                        image: postgres:9.6
+                    django:
+                        links:
+                          - postgres
+                          - postgres:postgresql
+                        image: django-template-django:20170418033205
+                        environment:
+                            DJANGO_VENV: /venv
+                            DATABASE_URL: pgsql://django:sesame@postgres:5432/django
+                            DJANGO_ROOT: /django
+                        working_dir: /django
+                        entrypoint:
+                          - /usr/bin/dumb-init
+                          - /usr/bin/entrypoint.sh
+                        user: django
+                        volumes:
+                          - static:/static
+                        command:
+                          - /venv/bin/gunicorn
+                          - -w
+                          - '2'
+                          - -b
+                          - 0.0.0.0:8080
+                          - project.wsgi:application
+                        ports:
+                          - '8080'
+                version: '2'
+                volumes: &id002
+                    static: {}
+            state: present
+            project_name: django-template
+        tags:
+          - start
+      - docker_service:
+            definition:
+                services: *id001
+                version: '2'
+                volumes: *id002
+            state: present
+            project_name: django-template
+            restarted: true
+        tags:
+          - restart
+      - docker_service:
+            definition:
+                services: *id001
+                version: '2'
+                volumes: *id002
+            state: present
+            project_name: django-template
+            stopped: true
+        tags:
+          - stop
+      - docker_service:
+            definition:
+                services: *id001
+                version: '2'
+                volumes: *id002
+            state: absent
+            project_name: django-template
+            remove_volumes: yes
+        tags:
+          - destroy
+      - docker_image:
+            state: absent
+            force: yes
+            name: django-template-nginx:20170418033605
+        tags: destroy
+      - docker_image:
+            state: absent
+            force: yes
+            name: django-template-nginx:latest
+        tags: destroy
+      - docker_image:
+            state: absent
+            force: yes
+            name: django-template-nginx:20170418032940
+        tags: destroy
+      - docker_image:
+            state: absent
+            force: yes
+            name: django-template-django:20170418033205
+        tags: destroy
+      - docker_image:
+            state: absent
+            force: yes
+            name: django-template-django:latest
+        tags: destroy
+      - docker_image:
+            state: absent
+            force: yes
+            name: django-template-conductor:latest
+        tags: destroy
+    hosts: localhost

@@ -1,0 +1,32 @@
+language: python
+dist: trusty
+sudo: required
+services:
+- docker
+before_install:
+- sudo apt-add-repository 'deb http://archive.ubuntu.com/ubuntu trusty-backports universe'
+- sudo apt-get update -qq
+install:
+- pip install -e git+https://github.com/ansible/ansible-container.git@develop#egg=ansible_container
+- pip install ansible
+script:
+- docker version
+- docker-compose version
+- docker info
+- mkdir -p tests
+- cd tests
+- ansible-container init
+- echo "Installing and testing git+https://github.com/${TRAVIS_REPO_SLUG},${TRAVIS_COMMIT}"
+- ansible-container install git+https://github.com/${TRAVIS_REPO_SLUG},${TRAVIS_COMMIT}
+- ansible-container build
+- ansible-container run -d --production
+- docker ps
+- ansible-playbook test.yml
+notifications:
+  email: false
+  webhooks: https://galaxy.ansible.com/api/v1/notifications/
+  slack:
+    rooms:
+      secure: ladYz8T4gLynD8rkjomfBR283Kvq1U9DB91HZ95AYd6CnQnRi0xkFZFw8B8VdPic/47vGJVNfHKQ09W22myqxvLcUtz4R5NUI7983VnKouG7rY7Qo/WKCqUyCTmLwZYqkQo1b6aShWGJYZ5BWOKw1s2t+GGuiPaxyey2a4JRb2liFKw54Elhuy4tuLeFIldafWHMeyNtk+r3WfYcQ0KHFbMg0cnEPsOh5jnFbVittL76X29QBgJ6WllK+z+dhX/1bDhKbObf1HglV7TqevRRfwmdmtvswCDBTplQZoZjdglPkMz+1f8VyWTuDSf66Eol1SiInaqZG8ZjBrF/W385nHl4wFoxtpWOFvDbqiTihGUm+2DmzJraqyDJnuE25w02OB3vkNHNXLrj1S3V7s2i7wsQw77vr7nXylLJK3VrPgG2LDm6JWpPZSs7y4NLMHKnvOM2xS1p+BuBol3a5qWaIOP1IBm3BXhYBCgIEvqe26wu8WJZuDs+BCofIDpezignTeOj5R3EncZkY8mfDvbTF7AURdOQm2I9CVpvpgMik3loBLUDOEnWBd/wcF2MUBKwzOfbCTK3sjFHLe2JJ0bWFaYEE29cS527tzrYEWDePKtdYyGtdqUYau9J4AC/V3/KdABppyTdU1nx9Mh3iN0YvnqTBVS+SMf+3rLQOZL6pwY=
+    on_success: change
+    on_failure: always
