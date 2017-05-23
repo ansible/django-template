@@ -25,19 +25,20 @@ services:
     command: ['{{ DJANGO_VENV }}/bin/gunicorn', '-w', '2', '-b', '0.0.0.0:{{ DJANGO_PORT }}', 'project.wsgi:application']
     entrypoint: ['/usr/bin/dumb-init', '/usr/bin/entrypoint.sh']
     volumes:
-      - "static:/static"
+      - 'static:{{ DJANGO_ROOT }}'
     dev_overrides:
       command: ['{{ DJANGO_VENV }}/bin/python', 'manage.py', 'runserver', '0.0.0.0:{{ DJANGO_PORT }}']
       volumes:
-      - '/Users/jginsberg/Development/ansible/ansible-container-template/django-template:{{ DJANGO_ROOT }}'
+      - '${PWD}:{{ DJANGO_ROOT }}'
       - "static:/static"
-      expose: "{{ DJANGO_PORT }}"
+      expose:
+      - "{{ DJANGO_PORT }}"
       environment:
         DEBUG: "1"
   nginx:
     from: centos:7
     roles:
-      - nginx
+    - nginx
     ports:
     - '{{ DJANGO_PORT }}:8000'
     user: nginx
@@ -45,7 +46,7 @@ services:
     - django
     command: ['/usr/bin/dumb-init', 'nginx', '-c', '/etc/nginx/nginx.conf']
     volumes:
-      - "static:/static"
+    - 'static:{{ STATIC_ROOT }}'
     dev_overrides:
       ports: []
       command: /bin/false

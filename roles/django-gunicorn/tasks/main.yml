@@ -66,11 +66,14 @@
 
 - name: Make staticfiles dir
   file:
-    name: "{{ DJANGO_STATIC_ROOT }}"
+    name: "{{ DJANGO_STATIC_ROOT }}/{{ item }}"
     state: directory
     owner: "{{ DJANGO_USER }}"
     group: root
     mode: 0775
+  with_items:
+  - app
+  - admin
 
 - name: Collect staticfiles
   command: "{{ DJANGO_VENV }}/bin/python manage.py collectstatic --noinput"
